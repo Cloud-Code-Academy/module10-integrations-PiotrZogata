@@ -33,7 +33,7 @@ public with sharing class DummyJSONCallout {
 	 * 
      * @param dummyUserId The ID of the user in the external system to fetch data for.
      */
-
+	@future (callout=true)
 	public static void getDummyJSONUserFromId(String dummyUserId) {
 		// Create HTTP request to send.
 		HttpRequest req = new HttpRequest();
@@ -47,10 +47,22 @@ public with sharing class DummyJSONCallout {
 		// Send the HTTP request and get the response.
 		Http http = new Http();
 		HTTPResponse res = http.send(req);
+		res.getStatus();
+		res.getStatusCode();
+		String jsonResponse = res.getBody();
 
 		// If the HTTP response code is successful, parse the JSON response and update the contact.
-		Contact cont = null;
-		upsert cont DummyJSON_Id__c; //insert/update from the JSON response using the external id (dummyUserId)
+	
+		if (res.getStatusCode() == 200) {
+            // If the status code is 200, the request was successful
+			Contact con = createContactFromJson(jsonResponse);
+			upsert con DummyJSON_Id__c; //insert/update from the JSON response using the external id (dummyUserId)
+
+        } else {
+            // If the status code is not 200, something went wrong with the request
+            System.debug('HTTP request failed. Status code: ' + res.getStatusCode());
+            System.debug('Response body: ' + res.getBody());
+        }
 	}
 
 	/* 
@@ -71,16 +83,28 @@ public with sharing class DummyJSONCallout {
 	@TestVisible // Allows test class to see this method. Since it is private, it would not be visible otherwise.
 	private static Contact createContactFromJson(String jsonResponse) {
 		// Deserialize the JSON string into map of primitive data types.
+        Map<String, Object> parsedResponse = (Map<String, Object>) JSON.deserializeUntyped(jsonResponse);
 
 		// Create a new contact from the JSON response.
-
+		Contact con = new Contact();
 		// Set the contact fields from the JSON response.
+		con.FirstName = (String) parsedResponse.get('first_name');
+		con.LastName = (String) parsedResponse.get('last_name');
+		con.Email = (String) parsedResponse.get('email');
+		con.Phone = (String) parsedResponse.get('phone');
+		con.Birthdate = Date.valueOf((String) parsedResponse.get('birthDate'));
 
 		// Deserialize the address from the JSON response.
+		Map<String, Object> address = (Map<String, Object>) parsedResponse.get('address');
 
 		// Set the address fields on the contact.
-
-		return null;
+		con.MailingStreet = (String) address.get('street');
+		con.MailingCity = (String) address.get('city');
+		con.MailingPostalCode = (String) address.get('zipcode');
+		con.MailingState = (String) address.get('state');
+		con.MailingCountry = (String) address.get('country');
+		
+		return con;
 	}
 
 	/* 
