@@ -16,34 +16,52 @@
  * 
  * Optional Challenge: Use a trigger handler class to implement the trigger logic.
  */
-trigger ContactTrigger on Contact(before insert, after insert) {
+trigger ContactTrigger on Contact(before insert, after insert, before update, after update, before delete, after delete, after undelete) {
 	// When a contact is inserted
 	// if DummyJSON_Id__c is null, generate a random number between 0 and 100 and set this as the contact's DummyJSON_Id__c value
 
 	if(Trigger.isBefore && Trigger.isInsert) {	
-	for(Contact con : Trigger.new){
 		Integer randomNumber = Integer.valueof((Math.random() * 100));
 	    System.debug('What is A VALUE FOR randomNumber :::: ' + randomNumber);
 	    String randomString = String.valueOf(randomNumber);
-		
-			if(con.DummyJSON_Id__c == null) {
+	for(Contact con : Trigger.new){
+			//if(con.DummyJSON_Id__c == null || con.DummyJSON_Id__c == '') {
+			if(String.isBlank(con.DummyJSON_Id__c)){
 				con.DummyJSON_Id__c = randomString;
-				//System.debug('What is A VALUE FOR con.DummyJSON_Id__c :::: ' + con.DummyJSON_Id__c);
 			}
+			System.debug('What is A VALUE FOR con.DummyJSON_Id__c :::: ' + con.DummyJSON_Id__c);
   	}
-	
-}
-	//When a contact is inserted
-	// if DummyJSON_Id__c is less than or equal to 100, call the getDummyJSONUserFromId API
-	//if(Trigger.isAfter && Trigger.isInsert) {
+	}
+	// //When a contact is inserted
+	// // if DummyJSON_Id__c is less than or equal to 100, call the getDummyJSONUserFromId API
+	if(Trigger.isAfter && Trigger.isInsert){
 	for(Contact con : Trigger.new){
 		if(con.DummyJSON_Id__c <= String.valueOf(100)) {
 			DummyJSONCallout.getDummyJSONUserFromId(con.DummyJSON_Id__c);
 		}		
 	}
-	//}
-   	
+	}
+
+	else {if(Trigger.isAfter && Trigger.isUpdate) {
+		for(Contact con : Trigger.new){
+			if(Integer.valueOf(con.DummyJSON_Id__c) > 100){
+				DummyJSONCallout.postCreateDummyJSONUser(con.Id); 
+			}
+		}
+	 }
+	}
+
+	//AccountHelper accountHelper = new AccountHelper();
+
+    // switch on Trigger.operationType {
+    //     when BEFORE_INSERT {
+    //         accountHelper.setTypeProspect(Trigger.new);
+    //         accountHelper.addressCopy(Trigger.new);
+    //         accountHelper.setRating(Trigger.new);
 	
-	//When a contact is updated
-	// if DummyJSON_Id__c is greater than 100, call the postCreateDummyJSONUser API
+    //     } 
+    //     when AFTER_INSERT{
+    //         accountHelper.defaultContact(Trigger.new);
+    //     }  
+    // }
 }
